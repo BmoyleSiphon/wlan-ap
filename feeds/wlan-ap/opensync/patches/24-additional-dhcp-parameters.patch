@@ -1,0 +1,62 @@
+Index: opensync-2.0.5.0/src/lib/inet/src/linux/inet_dhsnif_pcap.c
+===================================================================
+--- opensync-2.0.5.0.orig/src/lib/inet/src/linux/inet_dhsnif_pcap.c
++++ opensync-2.0.5.0/src/lib/inet/src/linux/inet_dhsnif_pcap.c
+@@ -525,6 +525,10 @@ void __inet_dhsnif_process(
+     struct eth_hdr *eth = (void *)(packet + l2_offset);
+ 
+     /* We're interested in IP only */
++	// TODO: add here a check for ETH_P_8021Q (0x8100) to capture vlan tags
++	if (ntohs(eth->eth_type) == 0x8100) {
++		LOG(INFO, "lkudra, ETH_P_8021Q type");
++	}
+     if (ntohs(eth->eth_type) !=  ETH_TYPE_IP) return;
+ 
+ #if 0
+@@ -848,6 +852,22 @@ void __inet_dhsnif_process_dhcp(
+                 LOG(INFO, "inet_dhsnif: GATEWAY");
+                 break;
+ 
++            case DHCP_OPTION_VLAN_ID:
++				LOG(INFO, "lkudra: vlan_id");
++                break;
++
++            case DHCP_OPTION_TIME_OFFSET:
++				LOG(INFO, "lkudra: time_offset");
++                break;
++
++            case DHCP_OPTION_RENEWAL_TIME:
++				LOG(INFO, "lkudra: renewal_time");
++                break;
++
++            case DHCP_OPTION_REBINDING_TIME:
++				LOG(INFO, "lkudra: rebinding_time");
++                break;
++
+             default:
+ #if 0
+                 LOG(DEBUG, "inet_dhsnif: %s: "PRI(inet_macaddr_t)": Received DHCP Option: %d(%d)\n",
+Index: opensync-2.0.5.0/src/lib/osn/inc/osn_dhcp.h
+===================================================================
+--- opensync-2.0.5.0.orig/src/lib/osn/inc/osn_dhcp.h
++++ opensync-2.0.5.0/src/lib/osn/inc/osn_dhcp.h
+@@ -90,6 +90,7 @@ enum osn_notify
+ enum osn_dhcp_option
+ {
+     DHCP_OPTION_SUBNET_MASK = 1,
++	DHCP_OPTION_TIME_OFFSET = 2,
+     DHCP_OPTION_ROUTER = 3,
+     DHCP_OPTION_DNS_SERVERS = 6,
+     DHCP_OPTION_HOSTNAME = 12,
+@@ -100,8 +101,11 @@ enum osn_dhcp_option
+     DHCP_OPTION_LEASE_TIME = 51,
+     DHCP_OPTION_MSG_TYPE = 53,
+     DHCP_OPTION_PARAM_LIST = 55,
++	DHCP_OPTION_RENEWAL_TIME = 58,
++	DHCP_OPTION_REBINDING_TIME = 59,
+     DHCP_OPTION_VENDOR_CLASS = 60,
+     DHCP_OPTION_DOMAIN_SEARCH= 119,
++	DHCP_OPTION_VLAN_ID = 132,
+     DHCP_OPTION_OSYNC_SWVER = 225,
+     DHCP_OPTION_OSYNC_PROFILE = 226,
+     DHCP_OPTION_OSYNC_SERIAL_OPT = 227,
