@@ -2,40 +2,94 @@ Index: opensync-2.0.5.0/src/lib/inet/src/linux/inet_dhsnif_pcap.c
 ===================================================================
 --- opensync-2.0.5.0.orig/src/lib/inet/src/linux/inet_dhsnif_pcap.c
 +++ opensync-2.0.5.0/src/lib/inet/src/linux/inet_dhsnif_pcap.c
-@@ -525,6 +525,10 @@ void __inet_dhsnif_process(
-     struct eth_hdr *eth = (void *)(packet + l2_offset);
- 
-     /* We're interested in IP only */
-+	// TODO: add here a check for ETH_P_8021Q (0x8100) to capture vlan tags
-+	if (ntohs(eth->eth_type) == 0x8100) {
-+		LOG(INFO, "lkudra, ETH_P_8021Q type");
+@@ -159,11 +159,12 @@ bool inet_dhsnif_notify(inet_dhsnif_t *s
+  * Ethernet header
+  */
+ #define ETH_TYPE_IP         0x800
++#define ETH_P_8021Q			0x8100
+ struct eth_hdr
+ {
+-    uint8_t                 eth_dst[6];         /* Hardware destination address */
+-    uint8_t                 eth_src[6];         /* Hardware source address */
+-    uint16_t                eth_type;           /* Packet type */
++   uint8_t                 eth_dst[6];         /* Hardware destination address */
++   uint8_t                 eth_src[6];         /* Hardware source address */
++   uint16_t                eth_type;           /* Packet type */
+ };
+
+ /**
+@@ -495,6 +496,7 @@ void __inet_dhsnif_process(
+     (void)packet;
+
+     uint32_t l2_offset = 0;
++	uint32_t eth_8021q_offset = 0;
+
+     /* Handle l2 packet type */
+     int l2_type = pcap_datalink(self->ds_pcap);
+@@ -522,10 +524,18 @@ void __inet_dhsnif_process(
+             return;
+     }
+
+-    struct eth_hdr *eth = (void *)(packet + l2_offset);
++	struct eth_hdr *eth = (void *)(packet + l2_offset);
+
+-    /* We're interested in IP only */
+-    if (ntohs(eth->eth_type) !=  ETH_TYPE_IP) return;
++	if (ntohs(eth->eth_type) == ETH_P_8021Q) {
++		// TODO: push vlan_id to dhcp ubus object
++		LOG(INFO, "lkudra, vlan_id: %u", ntohs(*(uint16_t *) (packet + l2_offset + sizeof(struct eth_hdr))));
++		eth_8021q_offset += 2;
 +	}
-     if (ntohs(eth->eth_type) !=  ETH_TYPE_IP) return;
- 
++
++    /* We're interested in IP and vlan tag only */
++	if ((ntohs(eth->eth_type) != ETH_P_8021Q) && (ntohs(eth->eth_type) != ETH_TYPE_IP)) {
++		return;
++	}
+
  #if 0
-@@ -848,6 +852,22 @@ void __inet_dhsnif_process_dhcp(
+     LOG(DEBUG, "inet_dhsnif: %s: Ethernet: dst:"PRI(inet_macaddr_t)" src:"PRI(inet_macaddr_t)" type:%d",
+@@ -536,7 +546,7 @@ void __inet_dhsnif_process(
+ #endif
+
+     /* Forward the packet to L3 processing */
+-    __inet_dhsnif_process_L3(self, pkt, packet, l2_offset + sizeof(struct eth_hdr));
++	__inet_dhsnif_process_L3(self, pkt, packet, l2_offset + sizeof(struct eth_hdr) + eth_8021q_offset);
+ }
+
+ /*
+@@ -848,6 +858,21 @@ void __inet_dhsnif_process_dhcp(
                  LOG(INFO, "inet_dhsnif: GATEWAY");
                  break;
- 
-+            case DHCP_OPTION_VLAN_ID:
-+				LOG(INFO, "lkudra: vlan_id");
-+                break;
-+
+
 +            case DHCP_OPTION_TIME_OFFSET:
-+				LOG(INFO, "lkudra: time_offset");
++				// TODO: push time_offset to dhcp ubus object
++				LOG(INFO, "lkudra, time_offset: %u", (uint32_t) ntohl(*(uint32_t *)popt));
 +                break;
 +
 +            case DHCP_OPTION_RENEWAL_TIME:
-+				LOG(INFO, "lkudra: renewal_time");
++				// TODO: push renewal_time to dhcp ubus object
++				LOG(INFO, "lkudra, renewal_time: %u", (uint32_t) ntohl(*(uint32_t *)popt));
 +                break;
 +
 +            case DHCP_OPTION_REBINDING_TIME:
-+				LOG(INFO, "lkudra: rebinding_time");
++				// TODO: push rebinding_time to dhcp ubus object
++				LOG(INFO, "lkudra, rebinding_time: %u", (uint32_t) ntohl(*(uint32_t *) popt));
 +                break;
 +
              default:
  #if 0
                  LOG(DEBUG, "inet_dhsnif: %s: "PRI(inet_macaddr_t)": Received DHCP Option: %d(%d)\n",
+@@ -913,6 +938,10 @@ void __inet_dhsnif_process_dhcp(
+             /* Save the IP address */
+             lease->le_info.dl_ipaddr = OSN_IP_ADDR_INIT;
+             lease->le_info.dl_ipaddr.ia_addr = dhcp->dhcp_yiaddr;
++			LOG(INFO, "lkudra, transaction_id: %u", dhcp->dhcp_xid);
++			osn_ip_addr_t gateway_ip = OSN_IP_ADDR_INIT;
++			gateway_ip.ia_addr = dhcp->dhcp_giaddr;
++			LOG(INFO, "lkudra, gateway_ip: %s", FMT_osn_ip_addr(gateway_ip));
+             break;
+
+         case DHCP_MSG_ACK:
 Index: opensync-2.0.5.0/src/lib/osn/inc/osn_dhcp.h
 ===================================================================
 --- opensync-2.0.5.0.orig/src/lib/osn/inc/osn_dhcp.h
@@ -48,7 +102,7 @@ Index: opensync-2.0.5.0/src/lib/osn/inc/osn_dhcp.h
      DHCP_OPTION_ROUTER = 3,
      DHCP_OPTION_DNS_SERVERS = 6,
      DHCP_OPTION_HOSTNAME = 12,
-@@ -100,8 +101,11 @@ enum osn_dhcp_option
+@@ -100,6 +101,8 @@ enum osn_dhcp_option
      DHCP_OPTION_LEASE_TIME = 51,
      DHCP_OPTION_MSG_TYPE = 53,
      DHCP_OPTION_PARAM_LIST = 55,
@@ -56,7 +110,4 @@ Index: opensync-2.0.5.0/src/lib/osn/inc/osn_dhcp.h
 +	DHCP_OPTION_REBINDING_TIME = 59,
      DHCP_OPTION_VENDOR_CLASS = 60,
      DHCP_OPTION_DOMAIN_SEARCH= 119,
-+	DHCP_OPTION_VLAN_ID = 132,
      DHCP_OPTION_OSYNC_SWVER = 225,
-     DHCP_OPTION_OSYNC_PROFILE = 226,
-     DHCP_OPTION_OSYNC_SERIAL_OPT = 227,
