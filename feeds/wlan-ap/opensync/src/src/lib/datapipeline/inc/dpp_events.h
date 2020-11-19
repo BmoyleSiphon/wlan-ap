@@ -12,6 +12,7 @@
 #define DPP_REASON_STR_LEN 129
 #define DPP_CLT_ID_LEN 129
 #define MAC_ADDRESS_STRING_LEN 17
+#define HOSTNAME_LEN 253
 
 /* proto: EventType */
 typedef enum {
@@ -194,9 +195,112 @@ typedef struct {
 	ds_dlist_node_t node;
 } dpp_event_record_session_t;
 
+/* proto: DhcpAckEvent */
+typedef struct {
+	uint32_t x_id;
+	uint32_t vlan_id;
+	uint8_t dhcp_server_ip[16];
+	uint8_t client_ip[16];
+	uint8_t relay_ip[16];
+	char device_mac_address[MAC_ADDRESS_STRING_LEN + 1];
+	uint8_t subnet_mask[16];
+	uint8_t primary_dns[16];
+	uint8_t secondary_dns[16];
+	uint32_t lease_time;
+	uint32_t renewal_time;
+	uint32_t rebinding_time;
+	uint32_t time_offset;
+	uint8_t gateway_ip[16];
+
+	ds_dlist_node_t node;
+} dpp_event_record_dhcp_ack_t;
+
+/* proto: DhcpNakEvent */
+typedef struct {
+	uint32_t x_id;
+	uint32_t vlan_id;
+	uint8_t dhcp_server_ip[16];
+	uint8_t client_ip[16];
+	uint8_t relay_ip[16];
+	char device_mac_address[MAC_ADDRESS_STRING_LEN + 1];
+	bool from_internal;
+
+	ds_dlist_node_t node;
+} dpp_event_record_dhcp_nak_t;
+
+/* proto: DhcpOfferEvent */
+typedef struct {
+	uint32_t x_id;
+	uint32_t vlan_id;
+	uint8_t dhcp_server_ip[16];
+	uint8_t client_ip[16];
+	uint8_t relay_ip[16];
+	char device_mac_address[MAC_ADDRESS_STRING_LEN + 1];
+	bool from_internal;
+
+	ds_dlist_node_t node;
+} dpp_event_record_dhcp_offer_t;
+
+/* proto: DhcpInformEvent */
+typedef struct {
+	uint32_t x_id;
+	uint32_t vlan_id;
+	uint8_t dhcp_server_ip[16];
+	uint8_t client_ip[16];
+	uint8_t relay_ip[16];
+	char device_mac_address[MAC_ADDRESS_STRING_LEN + 1];
+
+	ds_dlist_node_t node;
+} dpp_event_record_dhcp_inform_t;
+
+/* proto: DhcpDeclineEvent */
+typedef struct {
+	uint32_t x_id;
+	uint32_t vlan_id;
+	uint8_t dhcp_server_ip[16];
+	uint8_t client_ip[16];
+	uint8_t relay_ip[16];
+	char device_mac_address[MAC_ADDRESS_STRING_LEN + 1];
+
+	ds_dlist_node_t node;
+} dpp_event_record_dhcp_decline_t;
+
+/* proto: DhcpRequestEvent */
+typedef struct {
+	uint32_t x_id;
+	uint32_t vlan_id;
+	uint8_t dhcp_server_ip[16];
+	uint8_t client_ip[16];
+	uint8_t relay_ip[16];
+	char device_mac_address[MAC_ADDRESS_STRING_LEN + 1];
+	char hostname[HOSTNAME_LEN + 1];
+
+	ds_dlist_node_t node;
+} dpp_event_record_dhcp_request_t;
+
+/* proto: DhcpDiscoverEvent */
+typedef struct {
+	uint32_t x_id;
+	uint32_t vlan_id;
+	uint8_t dhcp_server_ip[16];
+	uint8_t client_ip[16];
+	uint8_t relay_ip[16];
+	char device_mac_address[MAC_ADDRESS_STRING_LEN + 1];
+	char hostname[HOSTNAME_LEN + 1];
+
+	ds_dlist_node_t node;
+} dpp_event_record_dhcp_discover_t;
+
 /* event record */
 typedef struct {
 	ds_dlist_t client_session; /* dpp_event_record_session_t */
+	ds_dlist_t dhcp_ack_event; /* dpp_event_record_dhcp_ack_t */
+	ds_dlist_t dhcp_nak_event; /* dpp_event_record_dhcp_nak_t */
+	ds_dlist_t dhcp_offer_event; /* dpp_event_record_dhcp_offer_t */
+	ds_dlist_t dhcp_inform_event; /* dpp_event_record_dhcp_inform_t */
+	ds_dlist_t dhcp_decline_event; /* dpp_event_record_dhcp_decline_t */
+	ds_dlist_t dhcp_request_event; /* dpp_event_record_dhcp_request_t */
+	ds_dlist_t dhcp_discover_event; /* dpp_event_record_dhcp_discover_t */
 
 	ds_dlist_node_t node;
 } dpp_event_record_t;
@@ -441,6 +545,174 @@ dpp_event_client_session_record_alloc()
 /* free */
 static inline void
 dpp_event_client_session_record_free(dpp_event_record_session_t *record)
+{
+	if (NULL != record) {
+		free(record);
+	}
+}
+
+/*******************************/
+/* DhcpAckEvent alloc/free */
+/*******************************/
+/* alloc */
+static inline dpp_event_record_dhcp_ack_t *dpp_event_dhcp_ack_record_alloc()
+{
+	dpp_event_record_dhcp_ack_t *record = NULL;
+
+	record = malloc(sizeof(dpp_event_record_dhcp_ack_t));
+	if (record) {
+		memset(record, 0, sizeof(dpp_event_record_dhcp_ack_t));
+	}
+	return record;
+}
+
+/* free */
+static inline void
+dpp_event_dhcp_ack_record_free(dpp_event_record_dhcp_ack_t *record)
+{
+	if (NULL != record) {
+		free(record);
+	}
+}
+
+/*******************************/
+/* DhcpNakEvent alloc/free */
+/*******************************/
+/* alloc */
+static inline dpp_event_record_dhcp_nak_t *dpp_event_dhcp_nak_record_alloc()
+{
+	dpp_event_record_dhcp_nak_t *record = NULL;
+
+	record = malloc(sizeof(dpp_event_record_dhcp_nak_t));
+	if (record) {
+		memset(record, 0, sizeof(dpp_event_record_dhcp_nak_t));
+	}
+	return record;
+}
+
+/* free */
+static inline void
+dpp_event_dhcp_nak_record_free(dpp_event_record_dhcp_nak_t *record)
+{
+	if (NULL != record) {
+		free(record);
+	}
+}
+
+/*******************************/
+/* DhcpOfferEvent alloc/free */
+/*******************************/
+/* alloc */
+static inline dpp_event_record_dhcp_offer_t *dpp_event_dhcp_offer_record_alloc()
+{
+	dpp_event_record_dhcp_offer_t *record = NULL;
+
+	record = malloc(sizeof(dpp_event_record_dhcp_offer_t));
+	if (record) {
+		memset(record, 0, sizeof(dpp_event_record_dhcp_offer_t));
+	}
+	return record;
+}
+
+/* free */
+static inline void
+dpp_event_dhcp_offer_record_free(dpp_event_record_dhcp_offer_t *record)
+{
+	if (NULL != record) {
+		free(record);
+	}
+}
+
+/*******************************/
+/* DhcpInformEvent alloc/free */
+/*******************************/
+/* alloc */
+static inline dpp_event_record_dhcp_inform_t *dpp_event_dhcp_inform_record_alloc()
+{
+	dpp_event_record_dhcp_inform_t *record = NULL;
+
+	record = malloc(sizeof(dpp_event_record_dhcp_inform_t));
+	if (record) {
+		memset(record, 0, sizeof(dpp_event_record_dhcp_inform_t));
+	}
+	return record;
+}
+
+/* free */
+static inline void
+dpp_event_dhcp_inform_record_free(dpp_event_record_dhcp_inform_t *record)
+{
+	if (NULL != record) {
+		free(record);
+	}
+}
+
+/*******************************/
+/* DhcpDeclineEvent alloc/free */
+/*******************************/
+/* alloc */
+static inline dpp_event_record_dhcp_decline_t *dpp_event_dhcp_decline_record_alloc()
+{
+	dpp_event_record_dhcp_decline_t *record = NULL;
+
+	record = malloc(sizeof(dpp_event_record_dhcp_decline_t));
+	if (record) {
+		memset(record, 0, sizeof(dpp_event_record_dhcp_decline_t));
+	}
+	return record;
+}
+
+/* free */
+static inline void
+dpp_event_dhcp_decline_record_free(dpp_event_record_dhcp_decline_t *record)
+{
+	if (NULL != record) {
+		free(record);
+	}
+}
+
+/*******************************/
+/* DhcpRequestEvent alloc/free */
+/*******************************/
+/* alloc */
+static inline dpp_event_record_dhcp_request_t *dpp_event_dhcp_request_record_alloc()
+{
+	dpp_event_record_dhcp_request_t *record = NULL;
+
+	record = malloc(sizeof(dpp_event_record_dhcp_request_t));
+	if (record) {
+		memset(record, 0, sizeof(dpp_event_record_dhcp_request_t));
+	}
+	return record;
+}
+
+/* free */
+static inline void
+dpp_event_dhcp_request_record_free(dpp_event_record_dhcp_request_t *record)
+{
+	if (NULL != record) {
+		free(record);
+	}
+}
+
+/*******************************/
+/* DhcpDiscoverEvent alloc/free */
+/*******************************/
+/* alloc */
+static inline dpp_event_record_dhcp_discover_t *dpp_event_dhcp_discover_record_alloc()
+{
+	dpp_event_record_dhcp_discover_t *record = NULL;
+
+	record = malloc(sizeof(dpp_event_record_dhcp_discover_t));
+	if (record) {
+		memset(record, 0, sizeof(dpp_event_record_dhcp_discover_t));
+	}
+	return record;
+}
+
+/* free */
+static inline void
+dpp_event_dhcp_discover_record_free(dpp_event_record_dhcp_discover_t *record)
 {
 	if (NULL != record) {
 		free(record);

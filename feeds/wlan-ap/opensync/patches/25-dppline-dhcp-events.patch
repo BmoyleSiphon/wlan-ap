@@ -1,0 +1,779 @@
+Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
+===================================================================
+--- opensync-2.0.5.0.orig/src/lib/datapipeline/src/dppline.c
++++ opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
+@@ -183,6 +183,27 @@ typedef struct {
+ 	dpp_event_record_timeout_t *timeout_list;
+ 	uint32_t timeout_qty;
+ 
++	dpp_event_record_dhcp_ack_t *dhcp_ack_list;
++	uint32_t dhcp_ack_qty;
++
++	dpp_event_record_dhcp_nak_t *dhcp_nak_list;
++	uint32_t dhcp_nak_qty;
++
++	dpp_event_record_dhcp_offer_t *dhcp_offer_list;
++	uint32_t dhcp_offer_qty;
++
++	dpp_event_record_dhcp_inform_t *dhcp_inform_list;
++	uint32_t dhcp_inform_qty;
++
++	dpp_event_record_dhcp_decline_t *dhcp_decline_list;
++	uint32_t dhcp_decline_qty;
++
++	dpp_event_record_dhcp_request_t *dhcp_request_list;
++	uint32_t dhcp_request_qty;
++
++	dpp_event_record_dhcp_discover_t *dhcp_discover_list;
++	uint32_t dhcp_discover_qty;
++
+ } dppline_event_rec_t;
+ 
+ typedef struct dpp_events_stats {
+@@ -259,6 +280,15 @@ static void dppline_free_stat(dppline_st
+ 			break;
+ 		case DPP_T_EVENTS:
+ 			free(s->u.events.list);
++			for (i = 0; i < s->u.events.qty; i++) {
++				free(s->u.events.list[i].dhcp_ack_list);
++				free(s->u.events.list[i].dhcp_nak_list);
++				free(s->u.events.list[i].dhcp_offer_list);
++				free(s->u.events.list[i].dhcp_inform_list);
++				free(s->u.events.list[i].dhcp_decline_list);
++				free(s->u.events.list[i].dhcp_request_list);
++				free(s->u.events.list[i].dhcp_discover_list);
++			}
+ 			break;
+ 		default:
+ 			break;
+@@ -737,6 +767,21 @@ static bool dppline_copysts(dppline_stat
+ 		dpp_event_record_timeout_t *timeout = NULL;
+ 		ds_dlist_iter_t timeout_iter;
+ 
++		dpp_event_record_dhcp_ack_t *dhcp_ack = NULL;
++		ds_dlist_iter_t dhcp_ack_iter;
++		dpp_event_record_dhcp_nak_t *dhcp_nak = NULL;
++		ds_dlist_iter_t dhcp_nak_iter;
++		dpp_event_record_dhcp_offer_t *dhcp_offer = NULL;
++		ds_dlist_iter_t dhcp_offer_iter;
++		dpp_event_record_dhcp_inform_t *dhcp_inform = NULL;
++		ds_dlist_iter_t dhcp_inform_iter;
++		dpp_event_record_dhcp_decline_t *dhcp_decline = NULL;
++		ds_dlist_iter_t dhcp_decline_iter;
++		dpp_event_record_dhcp_request_t *dhcp_request = NULL;
++		ds_dlist_iter_t dhcp_request_iter;
++		dpp_event_record_dhcp_discover_t *dhcp_discover = NULL;
++		ds_dlist_iter_t dhcp_discover_iter;
++
+ 		/* Loop through linked list of results and copy them to dppline buffer */
+ 		dst->u.events.qty = 0;
+ 		for (result_entry =
+@@ -1268,6 +1313,307 @@ static bool dppline_copysts(dppline_stat
+ 					.session_qty++;
+ 			}
+ 
++			// Add DhcpAck records
++			for (dhcp_ack = ds_dlist_ifirst(
++				     &dhcp_ack_iter,
++				     &result_entry->dhcp_ack_event);
++			     dhcp_ack != NULL;
++			     dhcp_ack = ds_dlist_inext(&dhcp_ack_iter)) {
++				size = (dst->u.events.list[dst->u.events.qty]
++						.dhcp_ack_qty +
++					1) *
++				       sizeof(dpp_event_record_dhcp_ack_t);
++
++				if (!dst->u.events.list[dst->u.events.qty]
++					     .dhcp_ack_qty) {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_ack_list = calloc(1, size);
++				} else {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_ack_list = realloc(
++						dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_ack_list,
++						size);
++					memset(&dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_ack_list
++								[dst->u.events
++									 .list[dst->u.events
++										       .qty]
++									 .dhcp_ack_qty],
++					       0,
++					       sizeof(dpp_event_record_dhcp_ack_t));
++				}
++				memcpy(&dst->u.events.list[dst->u.events.qty].dhcp_ack_list
++						[dst->u.events
++							 .list[dst->u.events.qty]
++							 .dhcp_ack_qty],
++				       dhcp_ack,
++				       sizeof(dpp_event_record_dhcp_ack_t));
++
++				dst->u.events.list[dst->u.events.qty]
++					.dhcp_ack_qty++;
++			}
++
++			// Add DhcpNak records
++			for (dhcp_nak = ds_dlist_ifirst(
++				     &dhcp_nak_iter,
++				     &result_entry->dhcp_nak_event);
++			     dhcp_nak != NULL;
++			     dhcp_nak = ds_dlist_inext(&dhcp_nak_iter)) {
++				size = (dst->u.events.list[dst->u.events.qty]
++						.dhcp_nak_qty +
++					1) *
++				       sizeof(dpp_event_record_dhcp_nak_t);
++
++				if (!dst->u.events.list[dst->u.events.qty]
++					     .dhcp_nak_qty) {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_nak_list = calloc(1, size);
++				} else {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_nak_list = realloc(
++						dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_nak_list,
++						size);
++					memset(&dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_nak_list
++								[dst->u.events
++									 .list[dst->u.events
++										       .qty]
++									 .dhcp_nak_qty],
++					       0,
++					       sizeof(dpp_event_record_dhcp_nak_t));
++				}
++				memcpy(&dst->u.events.list[dst->u.events.qty].dhcp_nak_list
++						[dst->u.events
++							 .list[dst->u.events.qty]
++							 .dhcp_nak_qty],
++				       dhcp_nak,
++				       sizeof(dpp_event_record_dhcp_nak_t));
++
++				dst->u.events.list[dst->u.events.qty]
++					.dhcp_nak_qty++;
++			}
++
++			// Add DhcpOffer records
++			for (dhcp_offer = ds_dlist_ifirst(
++				     &dhcp_offer_iter,
++				     &result_entry->dhcp_offer_event);
++			     dhcp_offer != NULL;
++			     dhcp_offer = ds_dlist_inext(&dhcp_offer_iter)) {
++				size = (dst->u.events.list[dst->u.events.qty]
++						.dhcp_offer_qty +
++					1) *
++				       sizeof(dpp_event_record_dhcp_offer_t);
++
++				if (!dst->u.events.list[dst->u.events.qty]
++					     .dhcp_offer_qty) {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_offer_list = calloc(1, size);
++				} else {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_offer_list = realloc(
++						dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_offer_list,
++						size);
++					memset(&dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_offer_list
++								[dst->u.events
++									 .list[dst->u.events
++										       .qty]
++									 .dhcp_offer_qty],
++					       0,
++					       sizeof(dpp_event_record_dhcp_offer_t));
++				}
++				memcpy(&dst->u.events.list[dst->u.events.qty].dhcp_offer_list
++						[dst->u.events
++							 .list[dst->u.events.qty]
++							 .dhcp_offer_qty],
++				       dhcp_offer,
++				       sizeof(dpp_event_record_dhcp_offer_t));
++
++				dst->u.events.list[dst->u.events.qty]
++					.dhcp_offer_qty++;
++			}
++
++			// Add DhcpInform records
++			for (dhcp_inform = ds_dlist_ifirst(
++				     &dhcp_inform_iter,
++				     &result_entry->dhcp_inform_event);
++			     dhcp_inform != NULL;
++			     dhcp_inform = ds_dlist_inext(&dhcp_inform_iter)) {
++				size = (dst->u.events.list[dst->u.events.qty]
++						.dhcp_inform_qty +
++					1) *
++				       sizeof(dpp_event_record_dhcp_inform_t);
++
++				if (!dst->u.events.list[dst->u.events.qty]
++					     .dhcp_inform_qty) {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_inform_list = calloc(1, size);
++				} else {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_inform_list = realloc(
++						dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_inform_list,
++						size);
++					memset(&dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_inform_list
++								[dst->u.events
++									 .list[dst->u.events
++										       .qty]
++									 .dhcp_inform_qty],
++					       0,
++					       sizeof(dpp_event_record_dhcp_inform_t));
++				}
++				memcpy(&dst->u.events.list[dst->u.events.qty].dhcp_inform_list
++						[dst->u.events
++							 .list[dst->u.events.qty]
++							 .dhcp_inform_qty],
++				       dhcp_inform,
++				       sizeof(dpp_event_record_dhcp_inform_t));
++
++				dst->u.events.list[dst->u.events.qty]
++					.dhcp_inform_qty++;
++			}
++
++			// Add DhcpDecline records
++			for (dhcp_decline = ds_dlist_ifirst(
++				     &dhcp_decline_iter,
++				     &result_entry->dhcp_decline_event);
++			     dhcp_decline != NULL;
++			     dhcp_decline = ds_dlist_inext(&dhcp_decline_iter)) {
++				size = (dst->u.events.list[dst->u.events.qty]
++						.dhcp_decline_qty +
++					1) *
++				       sizeof(dpp_event_record_dhcp_decline_t);
++
++				if (!dst->u.events.list[dst->u.events.qty]
++					     .dhcp_decline_qty) {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_decline_list = calloc(1, size);
++				} else {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_decline_list = realloc(
++						dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_decline_list,
++						size);
++					memset(&dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_decline_list
++								[dst->u.events
++									 .list[dst->u.events
++										       .qty]
++									 .dhcp_decline_qty],
++					       0,
++					       sizeof(dpp_event_record_dhcp_decline_t));
++				}
++				memcpy(&dst->u.events.list[dst->u.events.qty].dhcp_decline_list
++						[dst->u.events
++							 .list[dst->u.events.qty]
++							 .dhcp_decline_qty],
++				       dhcp_decline,
++				       sizeof(dpp_event_record_dhcp_decline_t));
++
++				dst->u.events.list[dst->u.events.qty]
++					.dhcp_decline_qty++;
++			}
++
++			// Add DhcpRequest records
++			for (dhcp_request = ds_dlist_ifirst(
++				     &dhcp_request_iter,
++				     &result_entry->dhcp_request_event);
++			     dhcp_request != NULL;
++			     dhcp_request = ds_dlist_inext(&dhcp_request_iter)) {
++				size = (dst->u.events.list[dst->u.events.qty]
++						.dhcp_request_qty +
++					1) *
++				       sizeof(dpp_event_record_dhcp_request_t);
++
++				if (!dst->u.events.list[dst->u.events.qty]
++					     .dhcp_request_qty) {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_request_list = calloc(1, size);
++				} else {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_request_list = realloc(
++						dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_request_list,
++						size);
++					memset(&dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_request_list
++								[dst->u.events
++									 .list[dst->u.events
++										       .qty]
++									 .dhcp_request_qty],
++					       0,
++					       sizeof(dpp_event_record_dhcp_request_t));
++				}
++				memcpy(&dst->u.events.list[dst->u.events.qty].dhcp_request_list
++						[dst->u.events
++							 .list[dst->u.events.qty]
++							 .dhcp_request_qty],
++				       dhcp_request,
++				       sizeof(dpp_event_record_dhcp_request_t));
++
++				dst->u.events.list[dst->u.events.qty]
++					.dhcp_request_qty++;
++			}
++
++			// Add DhcpDiscover records
++			for (dhcp_discover = ds_dlist_ifirst(
++				     &dhcp_discover_iter,
++				     &result_entry->dhcp_discover_event);
++			     dhcp_discover != NULL;
++			     dhcp_discover = ds_dlist_inext(&dhcp_discover_iter)) {
++				size = (dst->u.events.list[dst->u.events.qty]
++						.dhcp_discover_qty +
++					1) *
++				       sizeof(dpp_event_record_dhcp_discover_t);
++
++				if (!dst->u.events.list[dst->u.events.qty]
++					     .dhcp_discover_qty) {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_discover_list = calloc(1, size);
++				} else {
++					dst->u.events.list[dst->u.events.qty]
++						.dhcp_discover_list = realloc(
++						dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_discover_list,
++						size);
++					memset(&dst->u.events
++							.list[dst->u.events.qty]
++							.dhcp_discover_list
++								[dst->u.events
++									 .list[dst->u.events
++										       .qty]
++									 .dhcp_discover_qty],
++					       0,
++					       sizeof(dpp_event_record_dhcp_discover_t));
++				}
++				memcpy(&dst->u.events.list[dst->u.events.qty].dhcp_discover_list
++						[dst->u.events
++							 .list[dst->u.events.qty]
++							 .dhcp_discover_qty],
++				       dhcp_discover,
++				       sizeof(dpp_event_record_dhcp_discover_t));
++
++				dst->u.events.list[dst->u.events.qty]
++					.dhcp_discover_qty++;
++			}
++
+ 			dst->u.events.qty++;
+ 		}
+ 	} break;
+@@ -2846,6 +3192,13 @@ static void dppline_add_stat_events(Sts_
+ {
+ 	Sts__EventReport *sr = NULL;
+ 	Sts__EventReport__ClientSession *dr_client_session = NULL;
++	Sts__EventReport__DhcpAckEvent *dr_dhcp_ack_event = NULL;
++	Sts__EventReport__DhcpNakEvent *dr_dhcp_nak_event = NULL;
++	Sts__EventReport__DhcpOfferEvent *dr_dhcp_offer_event = NULL;
++	Sts__EventReport__DhcpInformEvent *dr_dhcp_inform_event = NULL;
++	Sts__EventReport__DhcpDeclineEvent *dr_dhcp_decline_event = NULL;
++	Sts__EventReport__DhcpRequestEvent *dr_dhcp_request_event = NULL;
++	Sts__EventReport__DhcpDiscoverEvent *dr_dhcp_discover_event = NULL;
+ 	uint32_t i = 0;
+ 	uint32_t j = 0;
+ 	uint32_t k = 0;
+@@ -3573,6 +3926,386 @@ static void dppline_add_stat_events(Sts_
+ 				}
+ 			}
+ 		}
++
++		/* DhcpAck Event */
++		sr->dhcp_ack_event = malloc(events->list[i].dhcp_ack_qty *
++						sizeof(*sr->dhcp_ack_event));
++		assert(sr->dhcp_ack_event);
++		sr->n_dhcp_ack_event = events->list[i].dhcp_ack_qty;
++
++		for (j = 0; j < events->list[i].dhcp_ack_qty; j++) {
++			dpp_event_record_dhcp_ack_t *sr_dhcp_ack_event =
++				&events->list[i].dhcp_ack_list[j];
++
++			dr_dhcp_ack_event = sr->dhcp_ack_event[j] =
++				malloc(sizeof(**sr->dhcp_ack_event));
++			sts__event_report__dhcp_ack_event__init(
++				dr_dhcp_ack_event);
++
++			if (sr_dhcp_ack_event->x_id) {
++				dr_dhcp_ack_event->x_id = sr_dhcp_ack_event->x_id;
++				dr_dhcp_ack_event->has_x_id = true;
++			}
++
++			if (sr_dhcp_ack_event->vlan_id) {
++				dr_dhcp_ack_event->vlan_id = sr_dhcp_ack_event->vlan_id;
++				dr_dhcp_ack_event->has_vlan_id = true;
++			}
++
++			if (sr_dhcp_ack_event->dhcp_server_ip) {
++				dr_dhcp_ack_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_ack_event->dhcp_server_ip.data, sr_dhcp_ack_event->dhcp_server_ip, 16);
++				dr_dhcp_ack_event->dhcp_server_ip.len = 16;
++			}
++
++			if (sr_dhcp_ack_event->client_ip) {
++				dr_dhcp_ack_event->client_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_ack_event->client_ip.data, sr_dhcp_ack_event->client_ip, 16);
++				dr_dhcp_ack_event->client_ip.len = 16;
++			}
++
++			if (sr_dhcp_ack_event->relay_ip) {
++				dr_dhcp_ack_event->relay_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_ack_event->relay_ip.data, sr_dhcp_ack_event->relay_ip, 16);
++				dr_dhcp_ack_event->relay_ip.len = 16;
++			}
++
++			dr_dhcp_ack_event->device_mac_address = strdup(sr_dhcp_ack_event->device_mac_address);
++
++			if (sr_dhcp_ack_event->subnet_mask) {
++				dr_dhcp_ack_event->subnet_mask.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_ack_event->subnet_mask.data, sr_dhcp_ack_event->subnet_mask, 16);
++				dr_dhcp_ack_event->subnet_mask.len = 16;
++			}
++
++			if (sr_dhcp_ack_event->primary_dns) {
++				dr_dhcp_ack_event->primary_dns.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_ack_event->primary_dns.data, sr_dhcp_ack_event->primary_dns, 16);
++				dr_dhcp_ack_event->primary_dns.len = 16;
++			}
++
++			if (sr_dhcp_ack_event->secondary_dns) {
++				dr_dhcp_ack_event->secondary_dns.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_ack_event->secondary_dns.data, sr_dhcp_ack_event->secondary_dns, 16);
++				dr_dhcp_ack_event->secondary_dns.len = 16;
++			}
++
++			if (sr_dhcp_ack_event->lease_time) {
++				dr_dhcp_ack_event->lease_time = sr_dhcp_ack_event->lease_time;
++				dr_dhcp_ack_event->has_lease_time = true;
++			}
++
++			if (sr_dhcp_ack_event->renewal_time) {
++				dr_dhcp_ack_event->renewal_time = sr_dhcp_ack_event->renewal_time;
++				dr_dhcp_ack_event->has_renewal_time = true;
++			}
++
++			if (sr_dhcp_ack_event->rebinding_time) {
++				dr_dhcp_ack_event->rebinding_time = sr_dhcp_ack_event->rebinding_time;
++				dr_dhcp_ack_event->has_rebinding_time = true;
++			}
++
++			if (sr_dhcp_ack_event->time_offset) {
++				dr_dhcp_ack_event->time_offset = sr_dhcp_ack_event->time_offset;
++				dr_dhcp_ack_event->has_time_offset = true;
++			}
++
++			if (sr_dhcp_ack_event->gateway_ip) {
++				dr_dhcp_ack_event->gateway_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_ack_event->gateway_ip.data, sr_dhcp_ack_event->gateway_ip, 16);
++				dr_dhcp_ack_event->gateway_ip.len = 16;
++			}
++		}
++
++		/* DhcpNak Event */
++		sr->dhcp_nak_event = malloc(events->list[i].dhcp_nak_qty *
++						sizeof(*sr->dhcp_nak_event));
++		assert(sr->dhcp_nak_event);
++		sr->n_dhcp_nak_event = events->list[i].dhcp_nak_qty;
++
++		for (j = 0; j < events->list[i].dhcp_nak_qty; j++) {
++			dpp_event_record_dhcp_nak_t *sr_dhcp_nak_event =
++				&events->list[i].dhcp_nak_list[j];
++
++			dr_dhcp_nak_event = sr->dhcp_nak_event[j] =
++				malloc(sizeof(**sr->dhcp_nak_event));
++			sts__event_report__dhcp_nak_event__init(
++				dr_dhcp_nak_event);
++
++			if (sr_dhcp_nak_event->x_id) {
++				dr_dhcp_nak_event->x_id = sr_dhcp_nak_event->x_id;
++				dr_dhcp_nak_event->has_x_id = true;
++			}
++
++			if (sr_dhcp_nak_event->vlan_id) {
++				dr_dhcp_nak_event->vlan_id = sr_dhcp_nak_event->vlan_id;
++				dr_dhcp_nak_event->has_vlan_id = true;
++			}
++
++			if (sr_dhcp_nak_event->dhcp_server_ip) {
++				dr_dhcp_nak_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_nak_event->dhcp_server_ip.data, sr_dhcp_nak_event->dhcp_server_ip, 16);
++				dr_dhcp_nak_event->dhcp_server_ip.len = 16;
++			}
++
++			if (sr_dhcp_nak_event->client_ip) {
++				dr_dhcp_nak_event->client_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_nak_event->client_ip.data, sr_dhcp_nak_event->client_ip, 16);
++				dr_dhcp_nak_event->client_ip.len = 16;
++			}
++
++			if (sr_dhcp_nak_event->relay_ip) {
++				dr_dhcp_nak_event->relay_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_nak_event->relay_ip.data, sr_dhcp_nak_event->relay_ip, 16);
++				dr_dhcp_nak_event->relay_ip.len = 16;
++			}
++
++			dr_dhcp_nak_event->device_mac_address = strdup(sr_dhcp_nak_event->device_mac_address);
++
++			if (sr_dhcp_nak_event->from_internal) {
++				dr_dhcp_nak_event->from_internal = sr_dhcp_nak_event->from_internal;
++				dr_dhcp_nak_event->has_from_internal = true;
++			}
++		}
++
++		/* DhcpOffer Event */
++		sr->dhcp_offer_event = malloc(events->list[i].dhcp_offer_qty *
++						sizeof(*sr->dhcp_offer_event));
++		assert(sr->dhcp_offer_event);
++		sr->n_dhcp_offer_event = events->list[i].dhcp_offer_qty;
++
++		for (j = 0; j < events->list[i].dhcp_offer_qty; j++) {
++			dpp_event_record_dhcp_offer_t *sr_dhcp_offer_event =
++				&events->list[i].dhcp_offer_list[j];
++
++			dr_dhcp_offer_event = sr->dhcp_offer_event[j] =
++				malloc(sizeof(**sr->dhcp_offer_event));
++			sts__event_report__dhcp_offer_event__init(
++				dr_dhcp_offer_event);
++
++			if (sr_dhcp_offer_event->x_id) {
++				dr_dhcp_offer_event->x_id = sr_dhcp_offer_event->x_id;
++				dr_dhcp_offer_event->has_x_id = true;
++			}
++
++			if (sr_dhcp_offer_event->vlan_id) {
++				dr_dhcp_offer_event->vlan_id = sr_dhcp_offer_event->vlan_id;
++				dr_dhcp_offer_event->has_vlan_id = true;
++			}
++
++			if (sr_dhcp_offer_event->dhcp_server_ip) {
++				dr_dhcp_offer_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_offer_event->dhcp_server_ip.data, sr_dhcp_offer_event->dhcp_server_ip, 16);
++				dr_dhcp_offer_event->dhcp_server_ip.len = 16;
++			}
++
++			if (sr_dhcp_offer_event->client_ip) {
++				dr_dhcp_offer_event->client_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_offer_event->client_ip.data, sr_dhcp_offer_event->client_ip, 16);
++				dr_dhcp_offer_event->client_ip.len = 16;
++			}
++
++			if (sr_dhcp_offer_event->relay_ip) {
++				dr_dhcp_offer_event->relay_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_offer_event->relay_ip.data, sr_dhcp_offer_event->relay_ip, 16);
++				dr_dhcp_offer_event->relay_ip.len = 16;
++			}
++
++			dr_dhcp_offer_event->device_mac_address = strdup(sr_dhcp_offer_event->device_mac_address);
++
++			if (sr_dhcp_offer_event->from_internal) {
++				dr_dhcp_offer_event->from_internal = sr_dhcp_offer_event->from_internal;
++				dr_dhcp_offer_event->has_from_internal = true;
++			}
++		}
++
++		/* DhcpInform Event */
++		sr->dhcp_inform_event = malloc(events->list[i].dhcp_inform_qty *
++						sizeof(*sr->dhcp_inform_event));
++		assert(sr->dhcp_inform_event);
++		sr->n_dhcp_inform_event = events->list[i].dhcp_inform_qty;
++
++		for (j = 0; j < events->list[i].dhcp_inform_qty; j++) {
++			dpp_event_record_dhcp_inform_t *sr_dhcp_inform_event =
++				&events->list[i].dhcp_inform_list[j];
++
++			dr_dhcp_inform_event = sr->dhcp_inform_event[j] =
++				malloc(sizeof(**sr->dhcp_inform_event));
++			sts__event_report__dhcp_inform_event__init(
++				dr_dhcp_inform_event);
++
++			if (sr_dhcp_inform_event->x_id) {
++				dr_dhcp_inform_event->x_id = sr_dhcp_inform_event->x_id;
++				dr_dhcp_inform_event->has_x_id = true;
++			}
++
++			if (sr_dhcp_inform_event->vlan_id) {
++				dr_dhcp_inform_event->vlan_id = sr_dhcp_inform_event->vlan_id;
++				dr_dhcp_inform_event->has_vlan_id = true;
++			}
++
++			if (sr_dhcp_inform_event->dhcp_server_ip) {
++				dr_dhcp_inform_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_inform_event->dhcp_server_ip.data, sr_dhcp_inform_event->dhcp_server_ip, 16);
++				dr_dhcp_inform_event->dhcp_server_ip.len = 16;
++			}
++
++			if (sr_dhcp_inform_event->client_ip) {
++				dr_dhcp_inform_event->client_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_inform_event->client_ip.data, sr_dhcp_inform_event->client_ip, 16);
++				dr_dhcp_inform_event->client_ip.len = 16;
++			}
++
++			if (sr_dhcp_inform_event->relay_ip) {
++				dr_dhcp_inform_event->relay_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_inform_event->relay_ip.data, sr_dhcp_inform_event->relay_ip, 16);
++				dr_dhcp_inform_event->relay_ip.len = 16;
++			}
++
++			dr_dhcp_inform_event->device_mac_address = strdup(sr_dhcp_inform_event->device_mac_address);
++		}
++
++		/* DhcpDecline Event */
++		sr->dhcp_decline_event = malloc(events->list[i].dhcp_decline_qty *
++						sizeof(*sr->dhcp_decline_event));
++		assert(sr->dhcp_decline_event);
++		sr->n_dhcp_decline_event = events->list[i].dhcp_decline_qty;
++
++		for (j = 0; j < events->list[i].dhcp_decline_qty; j++) {
++			dpp_event_record_dhcp_decline_t *sr_dhcp_decline_event =
++				&events->list[i].dhcp_decline_list[j];
++
++			dr_dhcp_decline_event = sr->dhcp_decline_event[j] =
++				malloc(sizeof(**sr->dhcp_decline_event));
++			sts__event_report__dhcp_decline_event__init(
++				dr_dhcp_decline_event);
++
++			if (sr_dhcp_decline_event->x_id) {
++				dr_dhcp_decline_event->x_id = sr_dhcp_decline_event->x_id;
++				dr_dhcp_decline_event->has_x_id = true;
++			}
++
++			if (sr_dhcp_decline_event->vlan_id) {
++				dr_dhcp_decline_event->vlan_id = sr_dhcp_decline_event->vlan_id;
++				dr_dhcp_decline_event->has_vlan_id = true;
++			}
++
++			if (sr_dhcp_decline_event->dhcp_server_ip) {
++				dr_dhcp_decline_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_decline_event->dhcp_server_ip.data, sr_dhcp_decline_event->dhcp_server_ip, 16);
++				dr_dhcp_decline_event->dhcp_server_ip.len = 16;
++			}
++
++			if (sr_dhcp_decline_event->client_ip) {
++				dr_dhcp_decline_event->client_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_decline_event->client_ip.data, sr_dhcp_decline_event->client_ip, 16);
++				dr_dhcp_decline_event->client_ip.len = 16;
++			}
++
++			if (sr_dhcp_decline_event->relay_ip) {
++				dr_dhcp_decline_event->relay_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_decline_event->relay_ip.data, sr_dhcp_decline_event->relay_ip, 16);
++				dr_dhcp_decline_event->relay_ip.len = 16;
++			}
++
++			dr_dhcp_decline_event->device_mac_address = strdup(sr_dhcp_decline_event->device_mac_address);
++		}
++
++		/* DhcpRequest Event */
++		sr->dhcp_request_event = malloc(events->list[i].dhcp_request_qty *
++						sizeof(*sr->dhcp_request_event));
++		assert(sr->dhcp_request_event);
++		sr->n_dhcp_request_event = events->list[i].dhcp_request_qty;
++
++		for (j = 0; j < events->list[i].dhcp_request_qty; j++) {
++			dpp_event_record_dhcp_request_t *sr_dhcp_request_event =
++				&events->list[i].dhcp_request_list[j];
++
++			dr_dhcp_request_event = sr->dhcp_request_event[j] =
++				malloc(sizeof(**sr->dhcp_request_event));
++			sts__event_report__dhcp_request_event__init(
++				dr_dhcp_request_event);
++
++			if (sr_dhcp_request_event->x_id) {
++				dr_dhcp_request_event->x_id = sr_dhcp_request_event->x_id;
++				dr_dhcp_request_event->has_x_id = true;
++			}
++
++			if (sr_dhcp_request_event->vlan_id) {
++				dr_dhcp_request_event->vlan_id = sr_dhcp_request_event->vlan_id;
++				dr_dhcp_request_event->has_vlan_id = true;
++			}
++
++			if (sr_dhcp_request_event->dhcp_server_ip) {
++				dr_dhcp_request_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_request_event->dhcp_server_ip.data, sr_dhcp_request_event->dhcp_server_ip, 16);
++				dr_dhcp_request_event->dhcp_server_ip.len = 16;
++			}
++
++			if (sr_dhcp_request_event->client_ip) {
++				dr_dhcp_request_event->client_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_request_event->client_ip.data, sr_dhcp_request_event->client_ip, 16);
++				dr_dhcp_request_event->client_ip.len = 16;
++			}
++
++			if (sr_dhcp_request_event->relay_ip) {
++				dr_dhcp_request_event->relay_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_request_event->relay_ip.data, sr_dhcp_request_event->relay_ip, 16);
++				dr_dhcp_request_event->relay_ip.len = 16;
++			}
++
++			dr_dhcp_request_event->device_mac_address = strdup(sr_dhcp_request_event->device_mac_address);
++
++			dr_dhcp_request_event->hostname = strdup(sr_dhcp_request_event->hostname);
++		}
++
++		/* DhcpDiscover Event */
++		sr->dhcp_discover_event = malloc(events->list[i].dhcp_discover_qty *
++						sizeof(*sr->dhcp_discover_event));
++		assert(sr->dhcp_discover_event);
++		sr->n_dhcp_discover_event = events->list[i].dhcp_discover_qty;
++
++		for (j = 0; j < events->list[i].dhcp_discover_qty; j++) {
++			dpp_event_record_dhcp_discover_t *sr_dhcp_discover_event =
++				&events->list[i].dhcp_discover_list[j];
++
++			dr_dhcp_discover_event = sr->dhcp_discover_event[j] =
++				malloc(sizeof(**sr->dhcp_discover_event));
++			sts__event_report__dhcp_discover_event__init(
++				dr_dhcp_discover_event);
++
++			if (sr_dhcp_discover_event->x_id) {
++				dr_dhcp_discover_event->x_id = sr_dhcp_discover_event->x_id;
++				dr_dhcp_discover_event->has_x_id = true;
++			}
++
++			if (sr_dhcp_discover_event->vlan_id) {
++				dr_dhcp_discover_event->vlan_id = sr_dhcp_discover_event->vlan_id;
++				dr_dhcp_discover_event->has_vlan_id = true;
++			}
++
++			if (sr_dhcp_discover_event->dhcp_server_ip) {
++				dr_dhcp_discover_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_discover_event->dhcp_server_ip.data, sr_dhcp_discover_event->dhcp_server_ip, 16);
++				dr_dhcp_discover_event->dhcp_server_ip.len = 16;
++			}
++
++			if (sr_dhcp_discover_event->client_ip) {
++				dr_dhcp_discover_event->client_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_discover_event->client_ip.data, sr_dhcp_discover_event->client_ip, 16);
++				dr_dhcp_discover_event->client_ip.len = 16;
++			}
++
++			if (sr_dhcp_discover_event->relay_ip) {
++				dr_dhcp_discover_event->relay_ip.data = calloc(16, sizeof(uint8_t));
++				memcpy(dr_dhcp_discover_event->relay_ip.data, sr_dhcp_discover_event->relay_ip, 16);
++				dr_dhcp_discover_event->relay_ip.len = 16;
++			}
++
++			dr_dhcp_discover_event->device_mac_address = strdup(sr_dhcp_discover_event->device_mac_address);
++
++			dr_dhcp_discover_event->hostname = strdup(sr_dhcp_discover_event->hostname);
++		}
+ 	}
+ }
+ 
