@@ -6,7 +6,7 @@ Index: opensync-2.0.5.0/interfaces/opensync_stats.proto
          repeated ClientConnectEvent     client_connect_event                = 10;
      }
 
-+        /* DHCP Ack Event */
++    /* DHCP Ack Event */
 +    message DhcpAckEvent {
 +        optional uint32                 x_id                                = 1;
 +        optional uint32                 vlan_id                             = 2;

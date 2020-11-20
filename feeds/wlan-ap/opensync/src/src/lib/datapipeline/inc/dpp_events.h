@@ -197,6 +197,7 @@ typedef struct {
 
 /* proto: DhcpAckEvent */
 typedef struct {
+	char __barrier[46];
 	uint32_t x_id;
 	uint32_t vlan_id;
 	uint8_t dhcp_server_ip[16];

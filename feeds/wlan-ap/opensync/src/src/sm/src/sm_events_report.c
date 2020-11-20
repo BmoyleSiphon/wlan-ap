@@ -24,6 +24,7 @@
 
 /* global list populated by ubus_collector */
 extern dpp_event_report_data_t g_report_data;
+// dpp_event_report_data_t g_report_data;
 
 /* new part */
 typedef struct {
@@ -88,6 +89,38 @@ static bool dpp_events_report_timer_restart(ev_timer *timer)
 	return true;
 }
 
+static void dummy_data_events() {
+	// dpp_event_report_data_t g_report_data -- this needs to be populated with dummy data
+	ds_dlist_init(&g_report_data.list, dpp_event_record_t, node);
+
+	dpp_event_record_t *record = NULL;
+	record = calloc(1, sizeof(dpp_event_record_t));
+
+	ds_dlist_init(&record->dhcp_ack_event, dpp_event_record_dhcp_ack_t, node);
+
+	dpp_event_record_dhcp_ack_t *dhcp_ack_dummy = NULL;
+	dhcp_ack_dummy = dpp_event_dhcp_ack_record_alloc();
+	dhcp_ack_dummy->x_id = 2294967295;
+	dhcp_ack_dummy->vlan_id = 3294967295;
+	static const uint8_t ip_initializer[] = {192, 168, 0, 99};
+	memcpy(dhcp_ack_dummy->dhcp_server_ip, ip_initializer, 16);
+	memcpy(dhcp_ack_dummy->client_ip, ip_initializer, 16);
+	memcpy(dhcp_ack_dummy->relay_ip, ip_initializer, 16);
+	strcpy(dhcp_ack_dummy->device_mac_address, "02:42:09:06:cd:80");
+	memcpy(dhcp_ack_dummy->subnet_mask, ip_initializer, 16);
+	memcpy(dhcp_ack_dummy->primary_dns, ip_initializer, 16);
+	memcpy(dhcp_ack_dummy->secondary_dns, ip_initializer, 16);
+	dhcp_ack_dummy->lease_time = 94967295;
+	dhcp_ack_dummy->renewal_time = 494967295;
+	dhcp_ack_dummy->rebinding_time = 429496795;
+	dhcp_ack_dummy->time_offset = 294967295;
+	memcpy(dhcp_ack_dummy->gateway_ip, ip_initializer, 16);
+
+	ds_dlist_insert_tail(&record->dhcp_ack_event, dhcp_ack_dummy);
+	
+	ds_dlist_insert_tail(&g_report_data.list, record);
+}
+
 static void sm_events_report(EV_P_ ev_timer *w, int revents)
 {
 	sm_events_ctx_t *events_ctx = (sm_events_ctx_t *)w->data;
@@ -95,6 +128,10 @@ static void sm_events_report(EV_P_ ev_timer *w, int revents)
 	ev_timer *report_timer = &events_ctx->report_timer;
 
 	dpp_events_report_timer_restart(report_timer);
+
+	LOG(INFO, "lkudra, calling dummy_data_events");
+	dummy_data_events();
+	LOG(INFO, "lkudra, dummy data finished");
 
 	memcpy(report_ctx, &g_report_data, sizeof(dpp_event_report_data_t));
 
@@ -104,6 +141,7 @@ static void sm_events_report(EV_P_ ev_timer *w, int revents)
 
 	LOG(INFO, "Sending events report...");
 	if (!ds_dlist_is_empty(&report_ctx->list)) {
+		LOG(INFO, "lkudra, report_ctx->list is not empty");
 		dpp_put_events(report_ctx);
 	}
 }

@@ -5,7 +5,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 @@ -183,6 +183,27 @@ typedef struct {
  	dpp_event_record_timeout_t *timeout_list;
  	uint32_t timeout_qty;
- 
+
 +	dpp_event_record_dhcp_ack_t *dhcp_ack_list;
 +	uint32_t dhcp_ack_qty;
 +
@@ -28,7 +28,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +	uint32_t dhcp_discover_qty;
 +
  } dppline_event_rec_t;
- 
+
  typedef struct dpp_events_stats {
 @@ -259,6 +280,15 @@ static void dppline_free_stat(dppline_st
  			break;
@@ -49,7 +49,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 @@ -737,6 +767,21 @@ static bool dppline_copysts(dppline_stat
  		dpp_event_record_timeout_t *timeout = NULL;
  		ds_dlist_iter_t timeout_iter;
- 
+
 +		dpp_event_record_dhcp_ack_t *dhcp_ack = NULL;
 +		ds_dlist_iter_t dhcp_ack_iter;
 +		dpp_event_record_dhcp_nak_t *dhcp_nak = NULL;
@@ -71,7 +71,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 @@ -1268,6 +1313,307 @@ static bool dppline_copysts(dppline_stat
  					.session_qty++;
  			}
- 
+
 +			// Add DhcpAck records
 +			for (dhcp_ack = ds_dlist_ifirst(
 +				     &dhcp_ack_iter,
@@ -390,7 +390,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
  	uint32_t i = 0;
  	uint32_t j = 0;
  	uint32_t k = 0;
-@@ -3573,6 +3926,386 @@ static void dppline_add_stat_events(Sts_
+@@ -3573,6 +3926,405 @@ static void dppline_add_stat_events(Sts_
  				}
  			}
  		}
@@ -421,21 +421,25 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +			}
 +
 +			if (sr_dhcp_ack_event->dhcp_server_ip) {
++
 +				dr_dhcp_ack_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
-+				memcpy(dr_dhcp_ack_event->dhcp_server_ip.data, sr_dhcp_ack_event->dhcp_server_ip, 16);
++				memcpy(dr_dhcp_ack_event->dhcp_server_ip.data, sr_dhcp_ack_event->dhcp_server_ip, 16 * sizeof(uint8_t));
 +				dr_dhcp_ack_event->dhcp_server_ip.len = 16;
++				dr_dhcp_ack_event->has_dhcp_server_ip = true;
 +			}
 +
 +			if (sr_dhcp_ack_event->client_ip) {
 +				dr_dhcp_ack_event->client_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_ack_event->client_ip.data, sr_dhcp_ack_event->client_ip, 16);
 +				dr_dhcp_ack_event->client_ip.len = 16;
++				dr_dhcp_ack_event->has_client_ip = true;
 +			}
 +
 +			if (sr_dhcp_ack_event->relay_ip) {
 +				dr_dhcp_ack_event->relay_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_ack_event->relay_ip.data, sr_dhcp_ack_event->relay_ip, 16);
 +				dr_dhcp_ack_event->relay_ip.len = 16;
++				dr_dhcp_ack_event->has_relay_ip = true;
 +			}
 +
 +			dr_dhcp_ack_event->device_mac_address = strdup(sr_dhcp_ack_event->device_mac_address);
@@ -444,18 +448,19 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				dr_dhcp_ack_event->subnet_mask.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_ack_event->subnet_mask.data, sr_dhcp_ack_event->subnet_mask, 16);
 +				dr_dhcp_ack_event->subnet_mask.len = 16;
++				dr_dhcp_ack_event->has_subnet_mask = true;
 +			}
 +
 +			if (sr_dhcp_ack_event->primary_dns) {
 +				dr_dhcp_ack_event->primary_dns.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_ack_event->primary_dns.data, sr_dhcp_ack_event->primary_dns, 16);
-+				dr_dhcp_ack_event->primary_dns.len = 16;
++				dr_dhcp_ack_event->has_primary_dns = true;
 +			}
 +
 +			if (sr_dhcp_ack_event->secondary_dns) {
 +				dr_dhcp_ack_event->secondary_dns.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_ack_event->secondary_dns.data, sr_dhcp_ack_event->secondary_dns, 16);
-+				dr_dhcp_ack_event->secondary_dns.len = 16;
++				dr_dhcp_ack_event->has_secondary_dns = true;
 +			}
 +
 +			if (sr_dhcp_ack_event->lease_time) {
@@ -482,6 +487,7 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				dr_dhcp_ack_event->gateway_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_ack_event->gateway_ip.data, sr_dhcp_ack_event->gateway_ip, 16);
 +				dr_dhcp_ack_event->gateway_ip.len = 16;
++				dr_dhcp_ack_event->has_gateway_ip = true;
 +			}
 +		}
 +
@@ -514,18 +520,20 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				dr_dhcp_nak_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_nak_event->dhcp_server_ip.data, sr_dhcp_nak_event->dhcp_server_ip, 16);
 +				dr_dhcp_nak_event->dhcp_server_ip.len = 16;
++				dr_dhcp_nak_event->has_dhcp_server_ip = true;
 +			}
 +
 +			if (sr_dhcp_nak_event->client_ip) {
 +				dr_dhcp_nak_event->client_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_nak_event->client_ip.data, sr_dhcp_nak_event->client_ip, 16);
 +				dr_dhcp_nak_event->client_ip.len = 16;
++				dr_dhcp_nak_event->has_client_ip = true;
 +			}
 +
 +			if (sr_dhcp_nak_event->relay_ip) {
 +				dr_dhcp_nak_event->relay_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_nak_event->relay_ip.data, sr_dhcp_nak_event->relay_ip, 16);
-+				dr_dhcp_nak_event->relay_ip.len = 16;
++				dr_dhcp_nak_event->has_relay_ip = true;
 +			}
 +
 +			dr_dhcp_nak_event->device_mac_address = strdup(sr_dhcp_nak_event->device_mac_address);
@@ -565,18 +573,20 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				dr_dhcp_offer_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_offer_event->dhcp_server_ip.data, sr_dhcp_offer_event->dhcp_server_ip, 16);
 +				dr_dhcp_offer_event->dhcp_server_ip.len = 16;
++				dr_dhcp_offer_event->has_dhcp_server_ip = true;
 +			}
 +
 +			if (sr_dhcp_offer_event->client_ip) {
 +				dr_dhcp_offer_event->client_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_offer_event->client_ip.data, sr_dhcp_offer_event->client_ip, 16);
 +				dr_dhcp_offer_event->client_ip.len = 16;
++				dr_dhcp_offer_event->has_client_ip = true;
 +			}
 +
 +			if (sr_dhcp_offer_event->relay_ip) {
 +				dr_dhcp_offer_event->relay_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_offer_event->relay_ip.data, sr_dhcp_offer_event->relay_ip, 16);
-+				dr_dhcp_offer_event->relay_ip.len = 16;
++				dr_dhcp_offer_event->has_relay_ip = true;
 +			}
 +
 +			dr_dhcp_offer_event->device_mac_address = strdup(sr_dhcp_offer_event->device_mac_address);
@@ -616,18 +626,20 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				dr_dhcp_inform_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_inform_event->dhcp_server_ip.data, sr_dhcp_inform_event->dhcp_server_ip, 16);
 +				dr_dhcp_inform_event->dhcp_server_ip.len = 16;
++				dr_dhcp_inform_event->has_dhcp_server_ip = true;
 +			}
 +
 +			if (sr_dhcp_inform_event->client_ip) {
 +				dr_dhcp_inform_event->client_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_inform_event->client_ip.data, sr_dhcp_inform_event->client_ip, 16);
 +				dr_dhcp_inform_event->client_ip.len = 16;
++				dr_dhcp_inform_event->has_client_ip = true;
 +			}
 +
 +			if (sr_dhcp_inform_event->relay_ip) {
 +				dr_dhcp_inform_event->relay_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_inform_event->relay_ip.data, sr_dhcp_inform_event->relay_ip, 16);
-+				dr_dhcp_inform_event->relay_ip.len = 16;
++				dr_dhcp_inform_event->has_relay_ip = true;
 +			}
 +
 +			dr_dhcp_inform_event->device_mac_address = strdup(sr_dhcp_inform_event->device_mac_address);
@@ -662,18 +674,21 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				dr_dhcp_decline_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_decline_event->dhcp_server_ip.data, sr_dhcp_decline_event->dhcp_server_ip, 16);
 +				dr_dhcp_decline_event->dhcp_server_ip.len = 16;
++				dr_dhcp_decline_event->has_dhcp_server_ip = true;
 +			}
 +
 +			if (sr_dhcp_decline_event->client_ip) {
 +				dr_dhcp_decline_event->client_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_decline_event->client_ip.data, sr_dhcp_decline_event->client_ip, 16);
 +				dr_dhcp_decline_event->client_ip.len = 16;
++				dr_dhcp_decline_event->has_client_ip = true;
 +			}
 +
 +			if (sr_dhcp_decline_event->relay_ip) {
 +				dr_dhcp_decline_event->relay_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_decline_event->relay_ip.data, sr_dhcp_decline_event->relay_ip, 16);
 +				dr_dhcp_decline_event->relay_ip.len = 16;
++				dr_dhcp_decline_event->has_relay_ip = true;
 +			}
 +
 +			dr_dhcp_decline_event->device_mac_address = strdup(sr_dhcp_decline_event->device_mac_address);
@@ -708,18 +723,20 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				dr_dhcp_request_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_request_event->dhcp_server_ip.data, sr_dhcp_request_event->dhcp_server_ip, 16);
 +				dr_dhcp_request_event->dhcp_server_ip.len = 16;
++				dr_dhcp_request_event->has_dhcp_server_ip = true;
 +			}
 +
 +			if (sr_dhcp_request_event->client_ip) {
 +				dr_dhcp_request_event->client_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_request_event->client_ip.data, sr_dhcp_request_event->client_ip, 16);
 +				dr_dhcp_request_event->client_ip.len = 16;
++				dr_dhcp_request_event->has_client_ip = true;
 +			}
 +
 +			if (sr_dhcp_request_event->relay_ip) {
 +				dr_dhcp_request_event->relay_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_request_event->relay_ip.data, sr_dhcp_request_event->relay_ip, 16);
-+				dr_dhcp_request_event->relay_ip.len = 16;
++				dr_dhcp_request_event->has_relay_ip = true;
 +			}
 +
 +			dr_dhcp_request_event->device_mac_address = strdup(sr_dhcp_request_event->device_mac_address);
@@ -756,18 +773,20 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +				dr_dhcp_discover_event->dhcp_server_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_discover_event->dhcp_server_ip.data, sr_dhcp_discover_event->dhcp_server_ip, 16);
 +				dr_dhcp_discover_event->dhcp_server_ip.len = 16;
++				dr_dhcp_discover_event->has_dhcp_server_ip = true;
 +			}
 +
 +			if (sr_dhcp_discover_event->client_ip) {
 +				dr_dhcp_discover_event->client_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_discover_event->client_ip.data, sr_dhcp_discover_event->client_ip, 16);
-+				dr_dhcp_discover_event->client_ip.len = 16;
++				dr_dhcp_discover_event->has_client_ip = true;
 +			}
 +
 +			if (sr_dhcp_discover_event->relay_ip) {
 +				dr_dhcp_discover_event->relay_ip.data = calloc(16, sizeof(uint8_t));
 +				memcpy(dr_dhcp_discover_event->relay_ip.data, sr_dhcp_discover_event->relay_ip, 16);
 +				dr_dhcp_discover_event->relay_ip.len = 16;
++				dr_dhcp_discover_event->has_relay_ip = true;
 +			}
 +
 +			dr_dhcp_discover_event->device_mac_address = strdup(sr_dhcp_discover_event->device_mac_address);
@@ -776,4 +795,34 @@ Index: opensync-2.0.5.0/src/lib/datapipeline/src/dppline.c
 +		}
  	}
  }
- 
+
+Index: opensync-2.0.5.0/src/sm/src/sm_main.c
+===================================================================
+--- opensync-2.0.5.0.orig/src/sm/src/sm_main.c
++++ opensync-2.0.5.0/src/sm/src/sm_main.c
+@@ -131,11 +131,11 @@ int main (int argc, char **argv)
+         return -1;
+     }
+
+-    if (ubus_collector_init()) {
+-        LOGE("Initializing ubus collector "
+-             "(Failed to initialize ubus collector)");
+-        return -1;
+-    }
++	if (ubus_collector_init()) {
++		LOGE("Initializing ubus collector "
++			 "(Failed to initialize ubus collector)");
++		return -1;
++	}
+
+     if (sm_setup_monitor()) {
+         return -1;
+@@ -154,7 +154,7 @@ int main (int argc, char **argv)
+
+     ev_default_destroy();
+
+-    ubus_collector_cleanup();
++	ubus_collector_cleanup();
+
+     LOGN("Exiting SM");
+
