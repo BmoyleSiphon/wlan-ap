@@ -31,56 +31,49 @@ static int netifd_ubus_notify(struct ubus_context *ctx, struct ubus_object *obj,
 	return 0;
 }
 
-static int
-ubus_dhcp_ack_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
+static int ubus_dhcp_ack_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
 		    struct ubus_request_data *req, const char *method,
 		    struct blob_attr *msg)
 {
 	return UBUS_STATUS_OK;
 }
 
-static int
-ubus_dhcp_nak_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
+static int ubus_dhcp_nak_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
 		    struct ubus_request_data *req, const char *method,
 		    struct blob_attr *msg)
 {
 	return UBUS_STATUS_OK;
 }
 
-static int
-ubus_dhcp_offer_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
+static int ubus_dhcp_offer_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
 		    struct ubus_request_data *req, const char *method,
 		    struct blob_attr *msg)
 {
 	return UBUS_STATUS_OK;
 }
 
-static int
-ubus_dhcp_inform_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
+static int ubus_dhcp_inform_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
 		    struct ubus_request_data *req, const char *method,
 		    struct blob_attr *msg)
 {
 	return UBUS_STATUS_OK;
 }
 
-static int
-ubus_dhcp_decline_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
+static int ubus_dhcp_decline_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
 		    struct ubus_request_data *req, const char *method,
 		    struct blob_attr *msg)
 {
 	return UBUS_STATUS_OK;
 }
 
-static int
-ubus_dhcp_request_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
+static int ubus_dhcp_request_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
 		    struct ubus_request_data *req, const char *method,
 		    struct blob_attr *msg)
 {
 	return UBUS_STATUS_OK;
 }
 
-static int
-ubus_dhcp_discover_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
+static int ubus_dhcp_discover_events_cb(struct ubus_context *ctx, struct ubus_object *obj,
 		    struct ubus_request_data *req, const char *method,
 		    struct blob_attr *msg)
 {
@@ -107,10 +100,22 @@ static struct ubus_object netifd_ubus_object = {
         .n_methods = ARRAY_SIZE(netifd_ubus_methods),
 };
 
+static int avl_compare_timestamp(const void *k1, const void *k2, void *ptr)
+{
+	const uint32_t *id1 = k1, *id2 = k2;
+
+	if (*id1 < *id2)
+		return -1;
+	else
+		return *id1 > *id2;
+}
+
 static void netifd_ubus_connect(struct ubus_context *ctx)
 {
 	ubus = ctx;
 	ubus_add_object(ubus, &netifd_ubus_object);
+	// not sure if this is the best place for avl_init
+	avl_init(ubus->objects, avl_compare_timestamp, false, NULL);
 }
 
 static struct ubus_instance ubus_instance = {
@@ -131,4 +136,9 @@ static struct ubus_instance ubus_instance = {
 int netifd_ubus_init(struct ev_loop *loop)
 {
 	return ubus_init(&ubus_instance, loop);
+}
+
+int netfid_ubus_handle_dhcp_event(struct dhcp_event_record) {
+	// TODO: implement
+	// in this function avl_insert should be called to populate the avl tree with dhcp events data
 }
